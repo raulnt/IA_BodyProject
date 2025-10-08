@@ -10,17 +10,11 @@ from sklearn.metrics import f1_score, classification_report, accuracy_score, roc
 import joblib
 from scipy.stats import randint
 
-# -----------------------------
-# 1️⃣ Carregar dataset
-# -----------------------------
 def load_dataset():
-    df = pd.read_csv("data/heart.csv")  # Coloque o CSV na pasta 'data'
+    df = pd.read_csv("data/heart.csv")  
     print("Primeiras linhas do dataset:\n", df.head())
     return df
 
-# -----------------------------
-# 2️⃣ Pré-processamento
-# -----------------------------
 def preprocess(df):
     X = df.drop('target', axis=1)
     y = df['target']
@@ -35,12 +29,11 @@ def preprocess(df):
     scaler = StandardScaler()
     encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
 
-    # Fit nos dados de treino
     imputer.fit(X_train[numeric_cols])
     scaler.fit(X_train[numeric_cols])
     encoder.fit(X_train[categorical_cols])
 
-    # Transformar
+    #Transformar
     def transform(X):
         X_num = imputer.transform(X[numeric_cols])
         X_num = scaler.transform(X_num)
@@ -50,9 +43,8 @@ def preprocess(df):
 
     return transform(X_train), y_train, transform(X_val), y_val, transform(X_test), y_test, imputer, scaler, encoder
 
-# -----------------------------
-# 3️⃣ Modelo Cru
-# -----------------------------
+
+#Vanilla Mod
 def train_crude_model(X_train, y_train, X_val, y_val, X_test, y_test):
     model = DecisionTreeClassifier(max_depth=6, random_state=42)
     model.fit(X_train, y_train)
@@ -70,9 +62,9 @@ def train_crude_model(X_train, y_train, X_val, y_val, X_test, y_test):
 
     return model, acc, f1, y_test, y_pred_proba
 
-# -----------------------------
-# 4️⃣ Modelo Melhorado
-# -----------------------------
+
+#OP Mod
+
 def train_optimized_model(X_train, y_train, X_val, y_val, X_test, y_test):
     param_dist = {
         "max_depth": randint(3, 10),
@@ -106,9 +98,6 @@ def train_optimized_model(X_train, y_train, X_val, y_val, X_test, y_test):
 
     return best_model, acc, f1, y_test, y_pred_proba
 
-# -----------------------------
-# 5️⃣ Plot Comparativo
-# -----------------------------
 def plot_comparison(acc_cru, f1_cru, acc_opt, f1_opt):
     labels = ['Acurácia', 'F1-Score']
     cru = [acc_cru, f1_cru]
@@ -131,9 +120,6 @@ def plot_comparison(acc_cru, f1_cru, acc_opt, f1_opt):
     plt.tight_layout()
     plt.show()
 
-# -----------------------------
-# 6️⃣ Plot Curva ROC
-# -----------------------------
 def plot_roc(y_test, proba_cru, proba_opt):
     fpr_cru, tpr_cru, _ = roc_curve(y_test, proba_cru)
     fpr_opt, tpr_opt, _ = roc_curve(y_test, proba_opt)
@@ -153,22 +139,18 @@ def plot_roc(y_test, proba_cru, proba_opt):
     plt.tight_layout()
     plt.show()
 
-# -----------------------------
-# 7️⃣ Treinar e salvar
-# -----------------------------
+
 def train_and_save():
     df = load_dataset()
     X_train, y_train, X_val, y_val, X_test, y_test, imputer, scaler, encoder = preprocess(df)
     
-    # Treinar modelos
+    #Treino
     crude_model, acc_cru, f1_cru, y_t_cru, proba_cru = train_crude_model(X_train, y_train, X_val, y_val, X_test, y_test)
     best_model, acc_opt, f1_opt, y_t_opt, proba_opt = train_optimized_model(X_train, y_train, X_val, y_val, X_test, y_test)
 
-    # Mostrar gráficos
     plot_comparison(acc_cru, f1_cru, acc_opt, f1_opt)
     plot_roc(y_t_cru, proba_cru, proba_opt)
 
-    # Salvar modelos e preprocessadores
     os.makedirs('models', exist_ok=True)
     joblib.dump(best_model, 'models/heart_model_best.pkl')
     joblib.dump(imputer, 'models/imputer.pkl')
@@ -176,8 +158,5 @@ def train_and_save():
     joblib.dump(encoder, 'models/encoder.pkl')
     print("\nModelos e objetos salvos com sucesso!")
 
-# -----------------------------
-# 8️⃣ Execução
-# -----------------------------
 if __name__ == "__main__":
     train_and_save()

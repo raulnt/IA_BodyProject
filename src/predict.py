@@ -1,7 +1,6 @@
 import pandas as pd
 import joblib
 
-# Carregar objetos
 model = joblib.load('models/heart_model.pkl')
 imputer = joblib.load('models/imputer.pkl')
 scaler = joblib.load('models/scaler.pkl')
@@ -10,7 +9,6 @@ try:
 except:
     encoder = None
 
-# Exemplo de entrada
 novo_dado = pd.DataFrame([{
     'age': 55,
     'sex': 1,
@@ -27,7 +25,6 @@ novo_dado = pd.DataFrame([{
     'thal': 1
 }])
 
-# Pré-processamento do mesmo jeito que treino
 numeric_cols = novo_dado.select_dtypes(include='number').columns.tolist()
 novo_dado[numeric_cols] = imputer.transform(novo_dado[numeric_cols])
 novo_dado[numeric_cols] = scaler.transform(novo_dado[numeric_cols])
