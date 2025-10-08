@@ -1,65 +1,47 @@
 import pandas as pd
-import numpy as np
 import joblib
 
-#CARREGAR
-def load_artifacts():
-    model = joblib.load('models/body_model.pkl')
-    imputer = joblib.load('models/imputer.pkl')
-    scaler = joblib.load('models/scaler.pkl')
+# Carregar objetos
+model = joblib.load('models/heart_model.pkl')
+imputer = joblib.load('models/imputer.pkl')
+scaler = joblib.load('models/scaler.pkl')
+try:
     encoder = joblib.load('models/encoder.pkl')
-    return model, imputer, scaler, encoder
+except:
+    encoder = None
 
-#PREVISÃO
-def predict_single(data: dict):
-    model, imputer, scaler, encoder = load_artifacts()
+# Exemplo de entrada
+novo_dado = pd.DataFrame([{
+    'age': 55,
+    'sex': 1,
+    'cp': 2,
+    'trestbps': 140,
+    'chol': 230,
+    'fbs': 0,
+    'restecg': 1,
+    'thalach': 150,
+    'exang': 0,
+    'oldpeak': 1.5,
+    'slope': 2,
+    'ca': 0,
+    'thal': 1
+}])
 
-    df = pd.DataFrame([data])
-    
-    numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
-    categorical_cols = df.select_dtypes(include='object').columns.tolist()
-    
-    df[numeric_cols] = imputer.transform(df[numeric_cols])
-    df[numeric_cols] = scaler.transform(df[numeric_cols])
-    
+# Pré-processamento do mesmo jeito que treino
+numeric_cols = novo_dado.select_dtypes(include='number').columns.tolist()
+novo_dado[numeric_cols] = imputer.transform(novo_dado[numeric_cols])
+novo_dado[numeric_cols] = scaler.transform(novo_dado[numeric_cols])
+
+if encoder:
+    categorical_cols = [c for c in novo_dado.columns if c not in numeric_cols]
     encoded_cols = list(encoder.get_feature_names_out(categorical_cols))
-    df_encoded = pd.DataFrame(encoder.transform(df[categorical_cols]), columns=encoded_cols)
-    
-    X = pd.concat([df[numeric_cols], df_encoded], axis=1)
-    
-    pred = model.predict(X)[0]
-    proba = model.predict_proba(X)[0][list(model.classes_).index(pred)]
-    
-    return pred, proba
+    novo_dado[encoded_cols] = encoder.transform(novo_dado[categorical_cols])
+    X_final = novo_dado[numeric_cols + encoded_cols]
+else:
+    X_final = novo_dado
 
-#TESTE
-if __name__ == "__main__":
-    sample = {
-        'Idade': 27,
-        'Sexo': 'Masculino',
-        'IMC': 25.5,
-        'TempoTreinoSemanal': 5,
-        'ConsumoProteinaDia': 120,
-        'Sono': 7.5,
-        'IngestaoAgua': 3.0,
-        'CaloriasDiarias': 2200,
-        'NivelExperiencia': 'Intermediário'
-    }
-    resultado, prob = predict_single(sample)
-    print("Predição:", resultado)
-    print(f"Probabilidade: {prob*100:.2f}%")
+pred = model.predict(X_final)
+prob = model.predict_proba(X_final)
 
-    novo_aluno = {
-    'Idade': 22,
-    'Sexo': 'Masculino',
-    'IMC': 23.5,
-    'TempoTreinoSemanal': 4,
-    'ConsumoProteinaDia': 110,
-    'Sono': 7.0,
-    'IngestaoAgua': 2.5,
-    'CaloriasDiarias': 2400,
-    'NivelExperiencia': 'Iniciante'
-    }
-    resultado, probabilidade = predict_single(novo_aluno)
-    print("Predição:", resultado)
-    print(f"Probabilidade: {probabilidade*100:.2f}%")
+print("Predição:", pred[0])
+print("Probabilidade:", round(prob[0][1]*100,2), "%")
